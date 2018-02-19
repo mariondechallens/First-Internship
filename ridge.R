@@ -1,46 +1,27 @@
-.libPaths(c("C:/Marion/Rstudio/packages_install",.libPaths()))
-library(MASS)  ##for ridge regression
+##Code for Ridge regression
+
+#Library management ----
+library(MASS)  
 library(ridge)
-source(file = "C:/Marion/T2S_LabStatistics/MOTI_NTS_analysis/MOTI_regressions/back_forward.R")  ##for functions
 
-##Ridge regression (avec les variables selectionnees par forward selection avec training et testing sets)
 
-## on prend les variables du modèle à 25 variables de la forward selection
-formule<-paste("Value...NTS ~ ",paste(forwardM$X15[1:15], collapse="+"),sep = "")  ##formule pour la regression
-lm1<-lm(formule,traindata) #OLS with variable selection forward
-summary(lm1)
+## Ridge model after forward or backward selection ----
+if (elimination =="forward"){
+  formule<-paste("Value...NTS ~ ",paste(forwardM$X15[1:nbvarF], collapse="+"),sep = "")}  ##formule pour la regression 
+if (elimination =="backward") {
+  formule<-paste("Value...NTS ~ ",paste(backwardM$X15[1:nbvarF], collapse="+"),sep = "")}
 
 lmr3<-linearRidge(formule,traindata) #lambda chosen automatically
-summary(lmr3)
 
-error<-rep(0,nrow(traindata))
-for (i in 1:nrow(traindata)){
-  error[i]<-error[i]+mean(traindata$Value...NTS)-traindata$Value...NTS[i]
-}
+SST<-MSEerreur(rep(mean(traindata$Value...NTS),nrow(traindata)),traindata)##total sum of squares
+   
+model<-plot_model_lm(lmr3,traindata,paste0("Ridge regression model for Value NTS ",elimination))
+MSER<-MSEerreur(model,traindata)  #error on train data
 
-SST<-sum(error^2)  ##total sum of squares
+modelpred<-plot_model_lm(lmr3,testdata,paste0("Ridge regression model for test data ",elimination))
 
-model<-predict(lmr3,traindata)
-plot(traindata$Value...NTS,ylab="Value NTS",xlab="Business days",type='l',col="red",main="Ridge regression model for Value NTS")
-lines(model,col="blue")
-legend("bottomleft",legend=c("Real values","Predicted values"),fill=c("red","blue"),border=c("red","blue"))
-
-error3<-rep(0,length(model))
-for (i in 1:length(model)){
-  error3[i]<-error3[i]+model[i]-traindata$Value...NTS[i]
-}
-MSER<-sum(error3^2)  #error on train data
-
-modelpred<-predict(lmr3,testdata)
-plot(testdata$Value...NTS,ylab="Value NTS",xlab="Business days",type='l',col="red",main="Ridge regression model for test data ")
-lines(modelpred,col="blue")
-legend("bottomleft",legend=c("Real values","Predicted values"),fill=c("red","blue"),border=c("red","blue"))
-
-error2<-rep(0,length(modelpred))
-for (i in 1:length(modelpred)){
-  error2[i]<-error2[i]+modelpred[i]-testdata$Value...NTS[i]
-}
-
-MSEpredR<-sum(error2^2) #error on test data
+##statistical indicators ----
+MSEpredR<-MSEerreur(modelpred,testdata) #error on test data
 r2R<-1-MSER/SST
 r2adjR<-1-(1-r2R)*(nrow(traindata)-1)/(nrow(traindata)-1-15)
+afficher_resultat(paste0("Ridge ",elimination),r2R,r2adjR,MSEpredR)
