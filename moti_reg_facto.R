@@ -1,17 +1,12 @@
+##Code that creates the data for regression analysis 
 
-.libPaths(c("C:/Marion/Rstudio/packages_install",.libPaths()))
-
+##Library management ----
 library(FactoMineR)
 library(stringr) 
 library(dendextend)
 
-regDir<-"C:/Marion/MOTI/Output/"
-Input<-"C:/Marion/MOTI/Input/"
 
-pval<-0.02  ##pvaleur pour sélectionner les variables (plus elle est faible plus la selection est bonne/exigeante)
-reg<-"normal" #"log" #
-
-##useful functions
+##Useful functions ----
 transf_dates<-function(PCA_table){
   temps<-paste(PCA_table$Business.Day...Date)
   temps<-strptime(temps, format="%Y%m%d")
@@ -57,8 +52,17 @@ gather_data<-function(pcatot,data,pcaAri,pcaVal,pcaWei,ca_micc,cmb){
   return(pcatot)
 } ##merger toutes les tables
 
+jpeg_SOA<-function(filename)
+{
+  jpeg(filename,
+       res = 450, 
+       height =  12, 
+       width = 16, 
+       units = 'cm')     
+}
+
 model_func<-function(pcatot,lmreg,title){
-  jpeg(paste0(regDir,title,".jpeg"),res = 450, height =  12, width = 16, units = 'cm')
+  jpeg_SOA(paste0(regDir,title,".jpeg"))
   model<-predict(lmreg,pcatot[,-c(1,2)]) 
   #apply the model on the data
   plot(pcatot$Business.Day...Date,pcatot$Value...NTS,ylab="Value NTS",xlab="",xaxt="n",type='l',col="red",main="Regression model for Value NTS")
@@ -103,11 +107,12 @@ select_var<-function(pcatot,pvaleur){
     }
   }
   var<-na.omit(var)
-  print(paste0("Les ",length(var)," variables sélectionnées sont: "))
+  print(paste0("Les ",length(var)," variables s?lectionn?es sont: "))
   print(var)
   sink()
   return(var)
-}  ## selectionne les meilleures variables (dont la p valeur est inferieur à un certain nombre)
+}  ## selectionne les meilleures variables (dont la p valeur est inferieur ? un certain nombre)
+
 select_var_log<-function(pcatot,pvaleur){
   sink(paste0(regDir,"all_data_lack.txt"))
   var<-rep(NA,ncol(pcatot))  ## vecteur qui acceuille les noms des variables selectionnees
@@ -138,20 +143,28 @@ select_var_log<-function(pcatot,pvaleur){
     }
   }
   var<-na.omit(var)
-  print(paste0("Les ",length(var)," variables sélectionnées sont: "))
+  print(paste0("Les ",length(var)," variables s?lectionn?es sont: "))
   print(var)
   sink()
   return(var)
 }
-##computations
-data<-read.table("C:/Marion/T2S_LabStatistics/SOA/total_cleaned_data.csv",header=TRUE,sep=";", dec=",")
 
+afficher_resultat<-function(method,r2,r2adj,MSEpred){
+  sink(paste0(regDir,method,"_statistical indicators.txt"))
+  print(paste0(method,": R2 = ",r2))
+  print(paste0(method,": R2adjusted = ",r2adj))
+  print(paste0(method,": The prediction error is ",MSEpred))
+  sink()
+}
+
+##Regression function that creates the final analysis table ----
 regression<-function(data,pvaleur){
 
   ##table contenant le taux de reg
-  data<-subset(data, Case == "MOTI")[,c("Business.Day...Date","Value...NTS")]
+  data<-subset(data, Case == sysent)[,c("Business.Day...Date","Value...NTS")]
+  #data<-subset(data,Business.Day...Date >= 20170901 & Business.Day...Date <= 20171031)  #for IBRC
   data<-subset(data,Business.Day...Date >= 20170101 & Business.Day...Date <= 20170831)
-  data<-subset(data, Business.Day...Date != 20170414 & Business.Day...Date != 20170417 &Business.Day...Date != 20170501 &Business.Day...Date != 20170816)
+  data<-subset(data, Business.Day...Date != 20170414 & Business.Day...Date != 20170413 &Business.Day...Date != 20170428)
   data<-transf_dates(data)
   
   ##tables avec les differents taux d'appro
@@ -172,51 +185,8 @@ regression<-function(data,pvaleur){
   
   pcatot<-gather_data(pcatot,data,pcaAri,pcaVal,pcaWei,ca_micc,cmb)  ##merger toutes les tables
   
-####variables selection
-if (reg == "log"){
-  var<-select_var_log(pcatot,pvaleur)
-  }
-else{ 
-  var<-select_var(pcatot,pvaleur)
-  }
-
-return(list("dataframe"= pcatot,"vector.var"=var))
+return(pcatot)
 }
 
-table<-regression(data,pval)$dataframe##puis créer les modèles en fonction des résultats dans le fichier .txt
 
-variables<-regression(data,pval)$vector.var
-formule<-paste("Value...NTS ~ ",paste(variables, collapse="+"),sep = "")  ##formule pour la regression
-
-lm1<-lm(formule,data=table)
-summary(lm1)  
-
-## puis on peut reselectionner les comptes avec les 21 plus basses p-valeurs (pour R² environ 0,7) si il y en a trop dans lm1
-nb<-28 #nombre de variables voulues dans le modèle
-
-if(length(names(summary(lm1)$coefficients[-1,1])) > nb){
-  cptes<-sort(summary(lm1)$coefficients[,4][2:nb])
-  cptes<-names(cptes)
-
-  formule2<-paste("Value...NTS ~ ",paste(cptes, collapse="+"),sep = "")  ##formule pour la regression
-  if(reg=="log"){
-    lm2<-lm(formule2,data=log(table[,-1]+1))
-  }
-  else{
-    lm2<-lm(formule2,data=table)}  
-  summary(lm2)
-}
-
-if(length(names(summary(lm1)$coefficients[-1,1])) < nb) {
-  cptes<-names(summary(lm1)$coefficients[,4][2:length(summary(lm1)$coefficients[,4])])
-  formule2<-paste("Value...NTS ~ ",paste(cptes, collapse="+"),sep = "")  ##formule pour la regression
-  if(reg=="log"){
-    lm2<-lm(formule2,data=log(table[,-1]+1))
-  }
-  else{
-    lm2<-lm(formule2,data=table)}
-  summary(lm2)
-}
-
-model_func(table,lm2,"model_lack_")
 

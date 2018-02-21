@@ -19,19 +19,8 @@ print(paste0("Le modele contient ",best_mod$df," variables."))
 #get model coefficients
 #coefL<-subset(data.frame(coef.name = dimnames(coef(best_mod))[[1]], coef.value = matrix(coef(best_mod)))[-1,],coef.value !=0)
 
-model<-predict(best_mod,x[train,])
-jpeg(paste0(regDir,"Lasso model.jpeg"),res = 450, height =  12, width = 16, units = 'cm')
-plot(traindata$Value...NTS,ylab="Value NTS",xlab="Business days",type='l',col="red",main="Lasso regression model for Value NTS")
-lines(model,col="blue")
-legend("bottomleft",legend=c("Real values","Predicted values"),fill=c("red","blue"),border=c("red","blue"))
-dev.off()
-
-pred<-predict(best_mod,x[-train,])
-jpeg(paste0(regDir,"Lasso model test.jpeg"),res = 450, height =  12, width = 16, units = 'cm')
-plot(testdata$Value...NTS,ylab="Value NTS",xlab="Business days",type='l',col="red",main="Lasso regression model for test data ")
-lines(pred,col="blue")
-legend("bottomleft",legend=c("Real values","Predicted values"),fill=c("red","blue"),border=c("red","blue"))
-dev.off()
+plot_model(predict(best_mod,x[train,]),traindata,"Lasso regression model")
+plot_model(predict(best_mod,x[-train,]),testdata,"Lasso model test")
 
 ##Statistical indicators ----
 MSEpredL<-sum((y[-train]-pred)^2)  ##error on test data

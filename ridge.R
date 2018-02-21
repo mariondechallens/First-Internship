@@ -15,10 +15,10 @@ lmr3<-linearRidge(formule,traindata) #lambda chosen automatically
 
 SST<-MSEerreur(rep(mean(traindata$Value...NTS),nrow(traindata)),traindata)##total sum of squares
    
-model<-plot_model_lm(lmr3,traindata,paste0("Ridge regression model for Value NTS ",elimination))
+model<-plot_model(predict(lmr3,traindata),traindata,paste0("Ridge regression model for Value NTS ",elimination))
 MSER<-MSEerreur(model,traindata)  #error on train data
 
-modelpred<-plot_model_lm(lmr3,testdata,paste0("Ridge regression model for test data ",elimination))
+modelpred<-plot_model(predict(lmr3,testdata),testdata,paste0("Ridge regression model for test data ",elimination))
 
 ##statistical indicators ----
 MSEpredR<-MSEerreur(modelpred,testdata) #error on test data
