@@ -14,18 +14,19 @@ transf_dates<-function(PCA_table){
   return(PCA_table)
 }
 
-prepare_data1<-function(filename,donnee,nb){
-  data<-transf_dates(read.table(paste0(Input,filename),header=TRUE,sep=";", dec=",",stringsAsFactors = F,check.names=FALSE))
-  data<-merge(donnee,data[,-c(3:nb+2)],all.y=T,all.x=T)  ##enlever les comptes cash car on prend ceux avec aco limit et micc
+prepare_data<-function(filename,donnee,nb1,nb2){
+  data<-transf_dates(read.table(paste0(Input,filename),
+                                header=TRUE,
+                                sep=";", 
+                                dec=",",
+                                stringsAsFactors = F,
+                                check.names=FALSE))
+  data<-merge(donnee,data[,-c(nb1:nb2)],
+              all.y=T,
+              all.x=T)  ##enlever les comptes cash car on prend ceux avec aco limit et micc
   return(data)
 }
 
-prepare_data2<-function(filename,donnee){
-  data<-transf_dates(read.table(paste0(Input,filename),header=TRUE,sep=";", dec=",",stringsAsFactors = F,check.names=FALSE))
-  data<-merge(donnee,data,all.y=T,all.x=T)
-  data<-data[complete.cases(data[,c(2,3)]),]
-  return(data)
-}
 
 merger<-function(data,pcatable,symbol,n){
   pcatot<-merge(data,pcatable,all.x=TRUE, all.y=TRUE)  
@@ -65,12 +66,18 @@ model_func<-function(pcatot,lmreg,title){
   jpeg_SOA(paste0(regDir,title,".jpeg"))
   model<-predict(lmreg,pcatot[,-c(1,2)]) 
   #apply the model on the data
-  plot(pcatot$Business.Day...Date,pcatot$Value...NTS,ylab="Value NTS",xlab="",xaxt="n",type='l',col="red",main="Regression model for Value NTS")
+  plot(pcatot$Business.Day...Date,pcatot$Value...NTS,
+       ylab="Value NTS",
+       xlab="",
+       xaxt="n",
+       type='l',
+       col="red",
+       main="Regression model for Value NTS")
   lines(pcatot$Business.Day...Date,model,col="blue")
   axis(1,pcatot$Business.Day...Date,format(pcatot$Business.Day...Date,"%Y/%m"),tck=0)
   legend("bottomleft",legend=c("Real values","Predicted values"),fill=c("red","blue"),border=c("red","blue"))
   dev.off()
-
+  
   model<-predict(lmreg,pcatot[,-c(1,2)],se.fit=T)
   se.PI <- sqrt(na.omit(model$se.fit^2) + na.omit(model$residual.scale^2)) ##compute prediction error
   return(sum(se.PI))
@@ -157,25 +164,33 @@ afficher_resultat<-function(method,r2,r2adj,MSEpred){
   sink()
 }
 
-##Regression function that creates the final analysis table ----
-regression<-function(data,pvaleur){
+removeDays<-function(monthData)
+{
+  # Removing special days
+  monthData<-monthData[monthData$Business.Day...Date!=20170414,]
+  monthData<-monthData[monthData$Business.Day...Date!=20170417,]
+  monthData<-monthData[monthData$Business.Day...Date!=20170501,]
+  monthData<-monthData[monthData$Business.Day...Date!=20170816,]
+  return(monthData)
+}
 
+##Regression function that creates the final analysis table ----
+regression<-function(data,pvaleur,startdate, enddate){
+  
   ##table contenant le taux de reg
   data<-subset(data, Case == sysent)[,c("Business.Day...Date","Value...NTS")]
-  #data<-subset(data,Business.Day...Date >= 20170901 & Business.Day...Date <= 20171031)  #for IBRC
-  data<-subset(data,Business.Day...Date >= 20170101 & Business.Day...Date <= 20170831)
-  data<-subset(data, Business.Day...Date != 20170414 & Business.Day...Date != 20170413 &Business.Day...Date != 20170428)
+  data<-subset(data,Business.Day...Date >= startdate & Business.Day...Date <= enddate)
+  data<-removeDays(data)
   data<-transf_dates(data)
   
   ##tables avec les differents taux d'appro
   
-  ca_micc<-prepare_data2("CA_table_MICC.csv",data)
-  nb_ca<-ncol(ca_micc)-2
-  cmb<-prepare_data2("CMB_table.csv",data)
+  ca_micc<-prepare_data("CA_table_MICC.csv",data,2,3)
+  cmb<-prepare_data("CMB_table.csv",data,2,3)
   
-  pcaAri<-prepare_data1("CA_rates_SA_table.csv",data,nb_ca)
-  pcaWei<-prepare_data1("CA_rates_SA_pond_table.csv",data,nb_ca)
-  pcaVal<-prepare_data1("CA_value_SA_table.csv",data,nb_ca)
+  pcaAri<-prepare_data("CA_rates_SA_table.csv",data,3,ncol(ca_micc))
+  pcaWei<-prepare_data("CA_rates_SA_pond_table.csv",data,3,ncol(ca_micc))
+  pcaVal<-prepare_data("CA_value_SA_table.csv",data,3,ncol(ca_micc))
   for (acc in colnames(pcaVal[,-1])){
     
     pcaVal[,c(acc)]<-str_replace_all(pcaVal[,c(acc)],",",".")
@@ -185,8 +200,9 @@ regression<-function(data,pvaleur){
   
   pcatot<-gather_data(pcatot,data,pcaAri,pcaVal,pcaWei,ca_micc,cmb)  ##merger toutes les tables
   
-return(pcatot)
+  return(pcatot)
 }
+
 
 
 

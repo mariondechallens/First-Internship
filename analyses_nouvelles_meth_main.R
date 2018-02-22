@@ -1,7 +1,11 @@
 ###Code realisant les nouvelles methodes d'analyse regressive
 
 ## Global variables ----
-sysent<-"ECFR"
+start<-20170101 #analysis period
+end<-20170630
+
+sysent<-"ECFR"  #studied CSD 
+
 data_type<-"_lack2" #pour les donnees capees 1 
 # data_type<-"_lack" #pour les donnees en lack
 # data_type<-"" #pour les donnees brutes
@@ -18,7 +22,7 @@ nbvar<-25 ##nombre maximum de variables dans le modele forward ou backward
 
 ## Variables for the final model forward ----
 elimination<-"forward" ##methode esperee pour le modele final
-nbvarF<-15 ##nombre de variables espere pour le modele final
+nbvarF<- 15 ##nombre de variables espere pour le modele final
 
 ##Computation data ----
 data<-read.table("../../SOA/total_cleaned_data.csv",header=TRUE,sep=";", dec=",")

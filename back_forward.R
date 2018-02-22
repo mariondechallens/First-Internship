@@ -3,7 +3,7 @@
 library(leaps)
 library(ISLR)
 
-table<-na.omit(regression(data,pval)[,-1]) #on enleve la colonne date
+table<-na.omit(regression(data,pval,start,end)[,-1]) #on enleve la colonne date
 
 ##Creating training and testing sets ----
 set.seed(1)
@@ -67,7 +67,9 @@ for_back<-function(elimination, nbvar,data){
                    method=elimination,
                    really.big=TRUE) ##choosing among a high number of variables
   vari<-summary(forw)$which  #which variable in each model
-  modelF<-data.frame(matrix(NA,ncol=nbvar,nrow=nbvar))
+  modelF<-data.frame(matrix(NA,
+                            ncol=nbvar,
+                            nrow=nbvar))
   for (i in 1:nbvar){
     vrai<-names(vari[i,][as.character(vari[i,]) == "TRUE"])
     modelF[,i]<-c(vrai[-1],rep(NA, nbvar-length(vrai[-1])))

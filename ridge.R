@@ -7,9 +7,13 @@ library(ridge)
 
 ## Ridge model after forward or backward selection ----
 if (elimination =="forward"){
-  formule<-paste("Value...NTS ~ ",paste(forwardM$X15[1:nbvarF], collapse="+"),sep = "")}  ##formule pour la regression 
+  formule<-paste("Value...NTS ~ ",
+                 paste(forwardM$X15[1:nbvarF], collapse="+"),
+                 sep = "")}  ##formule pour la regression 
 if (elimination =="backward") {
-  formule<-paste("Value...NTS ~ ",paste(backwardM$X15[1:nbvarF], collapse="+"),sep = "")}
+  formule<-paste("Value...NTS ~ ",
+                 paste(backwardM$X15[1:nbvarF], collapse="+"),
+                 sep = "")}
 
 lmr3<-linearRidge(formule,traindata) #lambda chosen automatically
 
